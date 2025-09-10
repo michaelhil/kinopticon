@@ -1,0 +1,210 @@
+name: Architecture Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run architecture checks weekly on Sundays at 1 AM UTC
+    - cron: '0 1 * * 0'
+
+env:
+  BUN_VERSION: 1.0.0
+
+jobs:
+  architecture-compliance:
+    name: Architecture Compliance
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+          
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        
+      - name: Validate project structure
+        run: |
+          echo "Validating monorepo structure..."
+          
+          # Check required directories exist
+          required_dirs=(
+            "simulation/src/core"
+            "simulation/src/types"
+            "simulation/tests/unit"
+            "tools"
+            "configs"
+            ".adr"
+          )
+          
+          for dir in "${required_dirs[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "❌ Missing required directory: $dir"
+              exit 1
+            else
+              echo "✅ Found required directory: $dir"
+            fi
+          done
+          
+      - name: Validate ADR system
+        run: |
+          echo "Validating ADR (Architecture Decision Records)..."
+          
+          if [ ! -f ".adr/templates/template.md" ]; then
+            echo "❌ ADR template missing"
+            exit 1
+          fi
+          
+          adr_count=$(find .adr -name "ADR-*.md" | wc -l)
+          if [ $adr_count -lt 5 ]; then
+            echo "❌ Insufficient ADRs found: $adr_count (expected at least 5)"
+            exit 1
+          else
+            echo "✅ Found $adr_count ADRs"
+          fi
+          
+      - name: Validate TypeScript configuration
+        run: |
+          echo "Validating TypeScript configuration..."
+          
+          # Check TypeScript configs exist
+          if [ ! -f "configs/tsconfig/tsconfig.base.json" ]; then
+            echo "❌ Base TypeScript config missing"
+            exit 1
+          fi
+          
+          if [ ! -f "simulation/tsconfig.json" ]; then
+            echo "❌ Simulation TypeScript config missing"  
+            exit 1
+          fi
+          
+          # Verify strict mode is enabled
+          if ! grep -q '"strict": true' configs/tsconfig/tsconfig.base.json; then
+            echo "❌ TypeScript strict mode not enabled"
+            exit 1
+          fi
+          
+          # Verify JS is disabled
+          if ! grep -q '"allowJs": false' configs/tsconfig/tsconfig.base.json; then
+            echo "❌ JavaScript is not disabled in TypeScript config"
+            exit 1
+          fi
+          
+          echo "✅ TypeScript configuration valid"
+          
+      - name: Run comprehensive architecture validation
+        run: bun run tools/validate-architecture.ts
+        
+  dependency-analysis:
+    name: Dependency Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+          
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        
+      - name: Analyze circular dependencies
+        run: |
+          echo "Analyzing circular dependencies..."
+          
+          # Check for circular dependencies in simulation
+          cd simulation
+          if command -v madge &> /dev/null; then
+            echo "Running madge circular dependency check..."
+            madge --circular --extensions ts src/ || echo "Madge not available, skipping detailed analysis"
+          else
+            echo "Madge not installed, performing basic check..."
+            # Basic check for obvious circular imports
+            find src -name "*.ts" -exec grep -l "import.*from.*'\\.\\./\\.\\.'" {} \; | head -5
+          fi
+          
+      - name: Analyze external dependencies
+        run: |
+          echo "Analyzing external dependencies..."
+          
+          # Count and list dependencies
+          echo "Root dependencies:"
+          if [ -f "package.json" ]; then
+            cat package.json | jq '.dependencies // {}, .devDependencies // {}' | jq 'keys | length'
+          fi
+          
+          echo "Simulation dependencies:"
+          if [ -f "simulation/package.json" ]; then
+            cd simulation
+            cat package.json | jq '.dependencies // {}, .devDependencies // {}' | jq 'keys | length'
+          fi
+          
+      - name: Check for forbidden dependencies
+        run: |
+          echo "Checking for forbidden dependencies..."
+          
+          # List of forbidden packages (should use TypeScript alternatives)
+          forbidden_deps=("lodash" "underscore" "moment" "request")
+          
+          for dep in "${forbidden_deps[@]}"; do
+            if grep -q "\"$dep\"" */package.json 2>/dev/null; then
+              echo "❌ Forbidden dependency found: $dep"
+              echo "Please use TypeScript-native alternatives"
+              exit 1
+            fi
+          done
+          
+          echo "✅ No forbidden dependencies found"
+          
+  code-quality-metrics:
+    name: Code Quality Metrics
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+          
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        
+      - name: Calculate code metrics
+        run: |
+          echo "## Code Quality Metrics" > metrics-report.md
+          echo "" >> metrics-report.md
+          
+          # Count lines of code
+          echo "### Lines of Code" >> metrics-report.md
+          echo "- TypeScript files: $(find . -name "*.ts" -not -path "./node_modules/*" | xargs wc -l | tail -1 | awk '{print $1}')" >> metrics-report.md
+          echo "- Test files: $(find . -name "*.test.ts" -o -name "*.spec.ts" | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}' || echo '0')" >> metrics-report.md
+          echo "" >> metrics-report.md
+          
+          # Count files
+          echo "### File Counts" >> metrics-report.md  
+          echo "- Total TypeScript files: $(find . -name "*.ts" -not -path "./node_modules/*" | wc -l)" >> metrics-report.md
+          echo "- Test files: $(find . -name "*.test.ts" -o -name "*.spec.ts" | wc -l)" >> metrics-report.md
+          echo "- Configuration files: $(find . -name "*.json" -o -name "*.js" -not -path "./node_modules/*" | wc -l)" >> metrics-report.md
+          echo "" >> metrics-report.md
+          
+          # Test coverage (placeholder)
+          echo "### Test Coverage" >> metrics-report.md
+          echo "Test coverage reporting will be implemented in Phase 1" >> metrics-report.md
+          
+      - name: Upload metrics report
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-metrics-${{ github.sha }}
+          path: metrics-report.md

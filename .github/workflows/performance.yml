@@ -1,0 +1,134 @@
+name: Performance Monitoring
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run performance tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  BUN_VERSION: 1.0.0
+
+jobs:
+  performance-baseline:
+    name: Performance Baseline
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+          
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        
+      - name: Run ECS performance benchmarks
+        run: |
+          cd simulation
+          echo "Running ECS performance benchmarks..."
+          bun run benchmark
+          
+      - name: Physics simulation benchmark
+        run: |
+          cd simulation
+          echo "Running physics simulation benchmark..."
+          # Will be implemented in Phase 1
+          echo "Physics benchmarks: Pending Phase 1 implementation"
+          
+      - name: Memory usage benchmark
+        run: |
+          cd simulation
+          echo "Running memory usage benchmark..."
+          # Monitor memory usage during simulation
+          /usr/bin/time -v bun run src/index.ts 2>&1 | grep -E "(Maximum resident set size|User time|System time)"
+          
+      - name: Generate performance report
+        run: |
+          echo "## Performance Report - $(date)" > performance-report.md
+          echo "" >> performance-report.md
+          echo "### System Information" >> performance-report.md
+          echo "- OS: $(uname -a)" >> performance-report.md
+          echo "- Bun Version: $(bun --version)" >> performance-report.md
+          echo "- Node.js Version: $(node --version)" >> performance-report.md
+          echo "- Memory: $(free -h | grep Mem | awk '{print $2}')" >> performance-report.md
+          echo "- CPU: $(nproc) cores" >> performance-report.md
+          echo "" >> performance-report.md
+          echo "### Benchmark Results" >> performance-report.md
+          echo "Results will be populated by actual benchmarks" >> performance-report.md
+          
+      - name: Upload performance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report-${{ github.sha }}
+          path: performance-report.md
+          
+  performance-comparison:
+    name: Performance Comparison
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+          
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        
+      - name: Run PR benchmarks
+        run: |
+          cd simulation
+          echo "Running benchmarks on PR branch..."
+          bun run benchmark > pr-benchmark.txt
+          
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+          
+      - name: Install base dependencies
+        run: bun install --frozen-lockfile
+        
+      - name: Run base benchmarks
+        run: |
+          cd simulation
+          echo "Running benchmarks on base branch..."
+          bun run benchmark > base-benchmark.txt
+          
+      - name: Compare performance
+        run: |
+          echo "## Performance Comparison" > performance-comparison.md
+          echo "" >> performance-comparison.md
+          echo "### Base Branch (main)" >> performance-comparison.md
+          cat base-benchmark.txt >> performance-comparison.md
+          echo "" >> performance-comparison.md
+          echo "### PR Branch" >> performance-comparison.md
+          cat pr-benchmark.txt >> performance-comparison.md
+          echo "" >> performance-comparison.md
+          echo "### Analysis" >> performance-comparison.md
+          echo "Detailed performance analysis will be implemented in Phase 1" >> performance-comparison.md
+          
+      - name: Comment PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('performance-comparison.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

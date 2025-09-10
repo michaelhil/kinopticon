@@ -1,0 +1,13 @@
+{
+  "name": "@kinopticon/tools",
+  "version": "0.1.0",
+  "description": "Development tools for Kinopticon",
+  "type": "module",
+  "scripts": {
+    "validate-architecture": "bun run validate-architecture.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

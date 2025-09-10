@@ -1,0 +1,76 @@
+{
+  "project": {
+    "name": "Kinopticon",
+    "version": "0.1.0",
+    "description": "Research-grade driving simulator with human factors focus",
+    "phase": 0,
+    "startDate": "2025-01-10",
+    "repository": "https://github.com/[org]/kinopticon"
+  },
+  "architecture": {
+    "structure": "monorepo",
+    "primaryLanguage": "TypeScript",
+    "runtime": "Bun",
+    "unrealVersion": "5.4+",
+    "integrationMethod": "Puerts"
+  },
+  "decisions": {
+    "documented": [
+      "ADR-001: Monorepo Structure",
+      "ADR-002: TypeScript-Only Codebase",
+      "ADR-003: Puerts Integration",
+      "ADR-004: GitHub Version Control",
+      "ADR-005: Bun Runtime"
+    ],
+    "pending": []
+  },
+  "modules": {
+    "simulation": {
+      "path": "/simulation",
+      "language": "TypeScript",
+      "responsibility": "Core simulation logic, ECS, physics, AI"
+    },
+    "unreal": {
+      "path": "/unreal",
+      "language": "C++/Blueprint",
+      "responsibility": "Visualization, Chaos physics integration, rendering"
+    },
+    "tools": {
+      "path": "/tools",
+      "language": "TypeScript",
+      "responsibility": "Build tools, profiling, debugging utilities"
+    }
+  },
+  "development": {
+    "nodeVersion": ">=20.0.0",
+    "bunVersion": ">=1.0.0",
+    "typeScriptVersion": "^5.3.0",
+    "strictMode": true,
+    "allowJavaScript": false
+  },
+  "quality": {
+    "testCoverage": {
+      "unit": 90,
+      "integration": 70,
+      "minimum": 80
+    },
+    "performance": {
+      "maxFrameTime": 16.67,
+      "targetFPS": 60,
+      "maxMemoryMB": 512
+    },
+    "codeStandards": {
+      "linter": "ESLint",
+      "formatter": "Prettier",
+      "preCommitHooks": true
+    }
+  },
+  "team": {
+    "size": "2-3 developers",
+    "roles": [
+      "Technical Lead",
+      "Core Developer",
+      "UE5 Specialist"
+    ]
+  }
+}

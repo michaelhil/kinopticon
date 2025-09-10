@@ -1,0 +1,77 @@
+# Kinopticon .gitignore
+# CRITICAL: Enforces TypeScript-only policy
+
+# JavaScript files - FORBIDDEN (except config)
+*.js
+!*.config.js
+!**/build/**/*.js
+!**/dist/**/*.js
+
+# TypeScript
+*.tsbuildinfo
+dist/
+build/
+
+# Unreal Engine
+unreal/Binaries/
+unreal/DerivedDataCache/
+unreal/Intermediate/
+unreal/Saved/
+unreal/.vs/
+unreal/.vscode/
+unreal/*.sln
+unreal/*.vcxproj*
+unreal/*.VC.db
+unreal/*.opendb
+unreal/*.opensdf
+unreal/*.sdf
+unreal/*.cachefile
+unreal/*.VC.VC.opendb
+unreal/enc_temp_folder/
+unreal/*.tmp
+
+# Bun/Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+bun.lockb.old
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+profiles/
+
+# Development tools
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*~
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak

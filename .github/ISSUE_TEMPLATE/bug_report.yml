@@ -1,0 +1,124 @@
+name: 🐛 Bug Report
+description: Report a bug or issue with Kinopticon
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug! Please fill out the information below to help us resolve the issue quickly.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify these items before submitting
+      options:
+        - label: I have searched for existing issues
+          required: true
+        - label: I am using the latest version of Kinopticon
+          required: true
+        - label: This is not a question (use Discussions for questions)
+          required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - Critical (Crashes, data loss)
+        - High (Major feature broken)
+        - Medium (Feature partially broken)
+        - Low (Minor inconvenience)
+      default: 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of Kinopticon is affected?
+      options:
+        - Core ECS Framework
+        - Physics Simulation
+        - Vehicle Dynamics
+        - AI Systems
+        - Unreal Engine Integration
+        - Networking
+        - Build/Development Tools
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Clear and concise description of what the bug is
+      placeholder: Describe the issue...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the issue
+      placeholder: |
+        1. Go to...
+        2. Click on...
+        3. Scroll down to...
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should have happened?
+      placeholder: Describe the expected behavior...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Describe what actually happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: System information
+      placeholder: |
+        - OS: [e.g., Windows 11, macOS 14.0, Ubuntu 22.04]
+        - Bun version: [e.g., 1.0.0]
+        - Node.js version (if applicable): [e.g., 20.0.0]
+        - Unreal Engine version: [e.g., 5.4.0]
+        - Hardware: [e.g., Intel i7, 16GB RAM, RTX 3080]
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs/Error Messages
+      description: Any relevant log output or error messages
+      render: shell
+      placeholder: Paste any relevant logs or error messages here...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem
+      placeholder: Add any additional context, screenshots, or related information...

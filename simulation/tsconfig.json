@@ -1,0 +1,26 @@
+{
+  "extends": "../configs/tsconfig/tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "paths": {
+      "@core/*": ["./src/core/*"],
+      "@domains/*": ["./src/domains/*"],
+      "@physics/*": ["./src/physics/*"],
+      "@ai/*": ["./src/ai/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@types/*": ["./src/types/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests",
+    "benchmarks",
+    "**/*.js"
+  ]
+}

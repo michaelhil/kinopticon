@@ -1,0 +1,174 @@
+name: 🚀 Feature Request
+description: Suggest a new feature or enhancement for Kinopticon
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new feature! Please provide detailed information to help us understand your proposal.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify these items before submitting
+      options:
+        - label: I have searched for existing feature requests
+          required: true
+        - label: I have checked the project roadmap
+          required: true
+        - label: This feature aligns with the project's goals
+          required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What type of feature is this?
+      options:
+        - Physics Simulation
+        - Vehicle Dynamics
+        - AI/Behavior Systems
+        - User Interface
+        - Scenario System
+        - Data Collection/Analysis
+        - Performance Optimization
+        - Developer Tools
+        - Documentation
+        - Integration (Unreal Engine)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature?
+      options:
+        - Critical (Core functionality)
+        - High (Important enhancement)
+        - Medium (Nice to have)
+        - Low (Minor improvement)
+      default: 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: Brief, clear summary of the proposed feature
+      placeholder: A one-line summary of what you want to add...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve?
+      placeholder: |
+        Describe the problem or limitation that this feature would address.
+        
+        For example:
+        - Current behavior: What happens now that is problematic?
+        - Impact: Who is affected and how?
+        - Frequency: How often does this problem occur?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Detailed description of the feature
+      placeholder: |
+        Describe your proposed solution in detail:
+        
+        - What should the feature do?
+        - How should it work?
+        - What should the user experience be?
+        - Are there any technical requirements?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Other approaches you've considered
+      placeholder: |
+        Describe any alternative solutions or workarounds you've considered:
+        
+        - What other approaches could solve this problem?
+        - Why is your proposed solution better?
+        - Are there any existing tools or features that partially address this?
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Technical Requirements
+      description: Any specific technical requirements or constraints
+      placeholder: |
+        List any technical requirements, constraints, or considerations:
+        
+        - Performance requirements
+        - Compatibility requirements
+        - Dependencies
+        - Integration points
+        - Security considerations
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How will we know this feature is complete?
+      placeholder: |
+        Define clear acceptance criteria:
+        
+        - [ ] Specific behavior 1
+        - [ ] Specific behavior 2
+        - [ ] Performance criteria
+        - [ ] Testing requirements
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups/Diagrams
+      description: Visual representations (links or descriptions)
+      placeholder: |
+        If applicable, provide:
+        - UI mockups
+        - Architecture diagrams  
+        - Flow charts
+        - Screenshots of similar features
+        
+        You can drag and drop images here or provide links.
+
+  - type: textarea
+    id: research
+    attributes:
+      label: Research Context
+      description: Research or academic context (if applicable)
+      placeholder: |
+        If this feature is related to human factors research:
+        
+        - What research questions does it support?
+        - Are there academic papers or studies that inform this feature?
+        - How does it fit into the research methodology?
+        - What data should it collect?
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: |
+        Add any additional context:
+        - Links to related issues
+        - References to similar implementations
+        - Timeline considerations
+        - Resource requirements

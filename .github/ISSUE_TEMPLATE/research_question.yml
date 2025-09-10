@@ -1,0 +1,243 @@
+name: 🔬 Research Question
+description: Propose a research question or study design
+title: "[Research]: "
+labels: ["research", "human-factors", "needs-review"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to propose research questions, study designs, or request specific research capabilities in Kinopticon.
+
+  - type: dropdown
+    id: research_area
+    attributes:
+      label: Research Area
+      description: Primary research domain
+      options:
+        - Driver Behavior
+        - Human Factors
+        - Traffic Psychology
+        - Vehicle Ergonomics
+        - Attention and Distraction
+        - Risk Perception
+        - Situational Awareness
+        - Training Effectiveness
+        - Technology Acceptance
+        - Safety Assessment
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: study_type
+    attributes:
+      label: Study Type
+      description: What type of research is this?
+      options:
+        - Experimental Study
+        - Observational Study
+        - Validation Study
+        - Pilot Study
+        - Literature Review Implementation
+        - Methodology Development
+        - Data Collection Framework
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: research_question
+    attributes:
+      label: Research Question(s)
+      description: Primary research question and any sub-questions
+      placeholder: |
+        State your research question(s) clearly:
+        
+        Primary Question: 
+        
+        Sub-questions (if any):
+        -
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis/Expected Outcomes
+      description: What do you expect to find?
+      placeholder: |
+        State your hypothesis or expected outcomes:
+        
+        - H1: 
+        - H2: 
+        
+        Expected findings:
+        
+        Potential implications:
+
+  - type: textarea
+    id: background
+    attributes:
+      label: Background & Rationale
+      description: Why is this research important?
+      placeholder: |
+        Provide background and justify the importance:
+        
+        - What gap in knowledge does this address?
+        - Why is this research needed?
+        - How does it relate to existing literature?
+        - What are the practical applications?
+    validations:
+      required: true
+
+  - type: textarea
+    id: methodology
+    attributes:
+      label: Proposed Methodology
+      description: How would you conduct this research?
+      placeholder: |
+        Describe your proposed methodology:
+        
+        Study Design:
+        - Experimental design (between/within subjects, etc.)
+        - Control conditions
+        - Randomization approach
+        
+        Participants:
+        - Target population
+        - Sample size (with power analysis if available)
+        - Recruitment strategy
+        - Inclusion/exclusion criteria
+        
+        Procedure:
+        - Task description
+        - Duration
+        - Instructions to participants
+        - Data collection points
+    validations:
+      required: true
+
+  - type: textarea
+    id: variables
+    attributes:
+      label: Variables & Measures
+      description: What will you measure?
+      placeholder: |
+        Define your variables:
+        
+        Independent Variables:
+        -
+        -
+        
+        Dependent Variables:
+        -
+        -
+        
+        Control Variables:
+        -
+        -
+        
+        Measurement Methods:
+        - Behavioral measures (reaction time, accuracy, etc.)
+        - Physiological measures (eye tracking, EEG, etc.)  
+        - Subjective measures (questionnaires, ratings)
+        - Performance measures (driving metrics, safety measures)
+
+  - type: textarea
+    id: simulator_requirements
+    attributes:
+      label: Simulator Requirements
+      description: What capabilities does Kinopticon need to support this research?
+      placeholder: |
+        List specific simulator requirements:
+        
+        Scenario Requirements:
+        - Traffic situations needed
+        - Environmental conditions
+        - Road types and geometries
+        - Time of day/weather conditions
+        
+        Technology Requirements:
+        - Sensor integration needed
+        - Hardware requirements
+        - Software capabilities
+        - Data logging requirements
+        
+        Participant Interface:
+        - Controls needed
+        - Display requirements
+        - Feedback mechanisms
+        
+        Data Collection:
+        - What data needs to be captured?
+        - Sampling rates required
+        - Real-time analysis needs
+    validations:
+      required: true
+
+  - type: textarea
+    id: ethics
+    attributes:
+      label: Ethical Considerations
+      description: Research ethics and participant safety
+      placeholder: |
+        Address ethical considerations:
+        
+        - IRB/Ethics approval status
+        - Informed consent requirements
+        - Risk assessment for participants
+        - Data privacy and anonymization
+        - Participant safety measures
+        - Debriefing procedures
+
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Timeline & Resources
+      description: Project timeline and resource requirements
+      placeholder: |
+        Provide timeline and resource estimates:
+        
+        Timeline:
+        - Study design finalization:
+        - Simulator preparation:
+        - Pilot testing:
+        - Data collection:
+        - Analysis:
+        - Reporting:
+        
+        Resources Needed:
+        - Personnel (researchers, programmers, etc.)
+        - Equipment
+        - Participant compensation
+        - Software/licenses
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Relevant literature or similar studies
+      placeholder: |
+        List key references that inform this research:
+        
+        - Author, Year. Title. Journal.
+        - Author, Year. Title. Journal.
+        
+        Similar studies in the literature:
+        
+        Methodological references:
+
+  - type: textarea
+    id: collaboration
+    attributes:
+      label: Collaboration Opportunities
+      description: Potential for collaboration with other researchers
+      placeholder: |
+        Identify collaboration opportunities:
+        
+        - Other research groups working on similar questions
+        - Complementary expertise needed
+        - Multi-site study possibilities
+        - Cross-disciplinary collaboration potential
