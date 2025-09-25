@@ -1,7 +1,7 @@
 # ADR-003: Use Puerts for TypeScript-Unreal Integration
 
 ## Status
-Accepted
+SUPERSEDED by ADR-006 (Web-Based Renderer)
 
 ## Context
 The Kinopticon simulator needs to integrate TypeScript simulation logic with Unreal Engine 5 visualization. We need a robust way to run TypeScript code within the Unreal Engine context and communicate between the two systems.

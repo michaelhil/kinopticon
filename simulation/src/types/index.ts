@@ -45,3 +45,7 @@ export interface PerformanceMetrics {
   memoryUsage: number;
   entityCount: number;
 }
+
+// Re-export math types for convenience
+export type { Vector3, Quaternion, Transform } from './math';
+export { Vector3Utils, QuaternionUtils, TransformUtils } from './math';

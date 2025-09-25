@@ -9,10 +9,11 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "bun run simulation/src/index.ts",
-    "build": "bun run build:simulation && bun run build:unreal",
+    "dev": "bun run server/debug-server.ts & vite",
+    "dev:debug": "bun run server/debug-server.ts",
+    "dev:client": "vite",
+    "build": "bun run build:simulation",
     "build:simulation": "cd simulation && bun run build",
-    "build:unreal": "echo 'Building Unreal project...' && cd unreal && echo 'UE build integration pending'",
     "test": "bun test",
     "test:unit": "bun test --testNamePattern='unit'",
     "test:integration": "bun test --testNamePattern='integration'",
@@ -43,7 +44,8 @@
     "eslint": "^8.56.0",
     "prettier": "^3.1.0",
     "typedoc": "^0.25.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "vite": "^7.1.7"
   },
   "repository": {
     "type": "git",
@@ -54,8 +56,13 @@
     "human-factors",
     "research",
     "typescript",
-    "unreal-engine"
+    "three-js",
+    "web-based"
   ],
   "license": "PROPRIETARY",
-  "author": "Human Factors Research Team"
+  "author": "Human Factors Research Team",
+  "dependencies": {
+    "@types/three": "^0.180.0",
+    "three": "^0.180.0"
+  }
 }

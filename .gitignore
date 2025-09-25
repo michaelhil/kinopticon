@@ -70,8 +70,29 @@ Desktop.ini
 logs/
 *.log
 
+# Debug files (runtime generated)
+debug/
+
 # Temporary files
 tmp/
 temp/
 *.tmp
 *.bak
+# Unreal Engine project files (stored outside repository)
+unreal/KinopticonUE/
+.env.local
+
+# UE-generated files
+**/Binaries/
+**/Intermediate/
+**/DerivedDataCache/
+**/Saved/
+**/*.sln
+**/*.suo
+**/*.xcworkspace
+**/*.pbxuser
+**/*.mode1v3
+**/*.mode2v3
+**/*.perspectivev3
+**/*.xcuserstate
+**/project.xcworkspace/
