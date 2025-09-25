@@ -64,18 +64,19 @@ src/renderer/
 └── render-loop.ts (50 lines - frame loop)
 ```
 
-## Phase 2: Physics Integration (Week 2)
+## Phase 2: Physics + Basic Maps (Week 2)
 
 ### Goals
 - Initialize Rapier WASM
 - Physics in Web Worker
 - SharedArrayBuffer communication
-- Basic vehicle physics
+- Basic OSM map loading
+- Simple intersection geometry
 
 ### Deliverables
 - Driveable box with physics
-- Collision detection
-- Ground plane
+- Real road intersection from OSM
+- Collision detection with road geometry
 
 ### Architecture
 ```typescript
@@ -86,6 +87,12 @@ src/physics/
 ├── world.ts        (50 lines)
 ├── bridge.ts       (80 lines - main/worker communication)
 └── vehicle.ts      (150 lines - vehicle physics)
+
+src/maps/
+├── index.ts        (10 lines)
+├── osm-loader.ts   (120 lines - basic OSM parsing)
+├── geometry.ts     (100 lines - Three.js conversion)
+└── cache.ts        (80 lines - IndexedDB caching)
 ```
 
 ## Phase 3: Input & Control (Week 3)
@@ -159,18 +166,34 @@ src/ai/
 - <200MB memory usage
 - <16ms frame time
 
-## Phase 7: Multiplayer (Week 7)
+## Phase 7: Multiplayer + Map Distribution (Week 7)
 
 ### Goals
-- WebSocket server
-- State synchronization
+- WebSocket server with room management
+- Multi-user map distribution system
+- State synchronization for vehicles and dynamic elements
+- Shared scenario generation
 - Lag compensation
-- Room management
 
 ### Deliverables
-- 4 players in same session
-- Synchronized physics
-- Chat system
+- 4 players in same session with shared OSM map
+- Synchronized physics and traffic lights
+- Scenario coordination system
+- Chat and voice communication
+
+### Map Distribution Architecture
+```typescript
+src/network/
+├── map-distributor.ts (150 lines - chunked map sharing)
+├── scenario-sync.ts   (100 lines - seed distribution)
+├── room-manager.ts    (120 lines - session coordination)
+└── state-sync.ts      (180 lines - vehicle/element sync)
+
+server/
+├── map-server.ts      (200 lines - OSM processing)
+├── scenario-host.ts   (150 lines - research coordination)
+└── rooms.ts           (100 lines - session management)
+```
 
 ## Phase 8: Data & Analytics (Week 8)
 
@@ -253,9 +276,11 @@ export function createVehicle(config: VehicleConfig): Vehicle {
 | Metric | Target | Measurement |
 |--------|--------|-------------|
 | Performance | 60 FPS | Performance.now() |
-| Load Time | <2s | Lighthouse |
+| Load Time | <2s initial, <10s map | Lighthouse + custom |
 | Bundle Size | <500KB | Vite analysis |
 | Memory | <200MB | Chrome DevTools |
+| Map Load | <10s for 5km² | Custom metrics |
+| Multi-User Sync | <50ms latency | WebSocket timing |
 | Code Quality | A | ESLint score |
 | Test Coverage | >80% | Vitest coverage |
 
@@ -263,8 +288,11 @@ export function createVehicle(config: VehicleConfig): Vehicle {
 
 ### Technical Risks
 - **WebGL compatibility**: Fallback to WebGL1
-- **SharedArrayBuffer**: Fallback to message passing
+- **SharedArrayBuffer**: Fallback to message passing  
 - **WASM support**: Fallback to asm.js
+- **OSM data size**: Implement progressive loading and LOD
+- **Map sync failures**: Graceful degradation to single-user mode
+- **IndexedDB storage limits**: Implement LRU cache eviction
 
 ### Development Risks
 - **Scope creep**: Strict phase boundaries
