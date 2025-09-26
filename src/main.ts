@@ -291,6 +291,64 @@ class Kinopticon {
     return (n - Math.floor(n)) * 2 - 1; // Range -1 to 1
   }
 
+  private smoothRoadPath(points: Vec3[]): Vec3[] {
+    if (points.length < 3) return points;
+    
+    const smoothed: Vec3[] = [];
+    
+    // Always keep first point
+    smoothed.push(points[0]);
+    
+    // Create smooth curves between points using Catmull-Rom spline
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[Math.max(0, i - 1)];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[Math.min(points.length - 1, i + 2)];
+      
+      // Calculate segment length to determine curve resolution
+      const segmentLength = Math.sqrt(
+        Math.pow(p2.x - p1.x, 2) + Math.pow(p2.z - p1.z, 2)
+      );
+      
+      // More points for longer segments, fewer for short ones
+      const curvePoints = Math.max(3, Math.min(10, Math.floor(segmentLength / 8)));
+      
+      // Generate curve points between p1 and p2
+      for (let t = 0; t <= 1; t += 1 / curvePoints) {
+        if (t === 0 && i > 0) continue; // Skip first point except for very first segment
+        
+        // Catmull-Rom spline interpolation
+        const tt = t * t;
+        const ttt = tt * t;
+        
+        // Catmull-Rom basis functions
+        const q0 = -ttt + 2 * tt - t;
+        const q1 = 3 * ttt - 5 * tt + 2;
+        const q2 = -3 * ttt + 4 * tt + t;
+        const q3 = ttt - tt;
+        
+        const x = 0.5 * (p0.x * q0 + p1.x * q1 + p2.x * q2 + p3.x * q3);
+        const z = 0.5 * (p0.z * q0 + p1.z * q1 + p2.z * q2 + p3.z * q3);
+        
+        // Get terrain height for the smoothed point
+        const terrainHeight = this.getTerrainHeight(x, z);
+        
+        smoothed.push({
+          x: x,
+          y: terrainHeight + 1,
+          z: z
+        });
+      }
+    }
+    
+    // Always keep last point with exact position
+    const lastPoint = points[points.length - 1];
+    smoothed.push(lastPoint);
+    
+    return smoothed;
+  }
+
   private getTerrainHeight(worldX: number, worldZ: number): number {
     if (!this.heightMap) return 0;
     
@@ -495,6 +553,7 @@ class Kinopticon {
       const points: Vec3[] = [];
       
       // Convert OSM coordinates to world coordinates
+      const rawPoints: Vec3[] = [];
       for (const nodeId of way.nodes) {
         const node = osmData.nodes.get(nodeId);
         if (!node) continue;
@@ -506,11 +565,16 @@ class Kinopticon {
         
         // Get terrain height and place roads slightly above it
         const terrainHeight = this.getTerrainHeight(worldX, worldZ);
-        // Debug: Log first few road points
-        if (points.length < 3) {
-          console.log(`🛣️ Road point at (${worldX.toFixed(1)}, ${worldZ.toFixed(1)}) → height ${terrainHeight.toFixed(1)}`);
-        }
-        points.push({ x: worldX, y: terrainHeight + 1, z: worldZ });
+        rawPoints.push({ x: worldX, y: terrainHeight + 1, z: worldZ });
+      }
+      
+      // Smooth the OSM path to eliminate sharp angles
+      const smoothedPoints = this.smoothRoadPath(rawPoints);
+      points.push(...smoothedPoints);
+      
+      // Debug: Log first few road points
+      if (points.length < 6 && smoothedPoints.length > 0) {
+        console.log(`🛣️ Smoothed road: ${rawPoints.length} → ${smoothedPoints.length} points`);
       }
       
       if (points.length < 2) continue;
