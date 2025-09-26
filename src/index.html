@@ -1,52 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kinopticon - Multi-Modal Mobility Simulator</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #1a1a1a;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      overflow: hidden;
-    }
-    
-    #app {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-    }
-    
-    #renderer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 1;
-    }
-    
-    #ui-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 100;
-      pointer-events: none;
-    }
-    
-    .ui-component {
-      pointer-events: auto;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kinopticon - Road Visualization</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: monospace;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        .info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            z-index: 1000;
+            max-width: 250px;
+        }
+    </style>
 </head>
 <body>
-  <div id="app">
-    <canvas id="renderer"></canvas>
-    <div id="ui-overlay">
-      <sim-dashboard class="ui-component"></sim-dashboard>
-      <debug-overlay class="ui-component"></debug-overlay>
+    <div class="info">
+        <strong>Kinopticon - Road Renderer</strong><br><br>
+        <strong>Controls:</strong><br>
+        WASD - Move camera<br>
+        Mouse - Rotate view<br>
+        Wheel - Zoom in/out<br>
+        <br>
+        <strong>Markers:</strong><br>
+        🔴 Red - Intersections<br>
+        🔵 Blue - Road endpoints<br>
+        🟠 Orange - Motorways<br>
+        🟡 Yellow - Trunk roads<br>
+        🟢 Green - Primary roads<br>
+        🟣 Purple - Secondary roads<br>
+        ⚪ White - Residential<br>
+        🐱 Cyan - Named roads<br>
     </div>
-  </div>
-  <script type="module" src="./main.ts"></script>
+
+    <script type="module" src="./main.ts"></script>
 </body>
 </html>
