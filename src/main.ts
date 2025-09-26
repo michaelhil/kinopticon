@@ -28,21 +28,52 @@ interface Vec3 {
   z: number;
 }
 
+interface RoadSegment {
+  points: Vec3[];
+  name?: string;
+  wayId: string;
+}
+
+interface DrivingState {
+  isDriving: boolean;
+  currentSegment?: RoadSegment;
+  currentPointIndex: number;
+  currentPosition: Vec3;
+  currentDirection: Vec3;
+  speed: number; // km/h
+  targetSpeed: number; // km/h
+}
+
 class Kinopticon {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   private terrain?: THREE.Mesh;
   private roads: THREE.Group = new THREE.Group();
+  private roadLabels: THREE.Sprite[] = [];
+  private roadSegments: RoadSegment[] = [];
   private bumpiness: number = 0.3;
   private heightMap: Float32Array | null = null;
   private terrainSize: number = 2000;
   private terrainSegments: number = 100;
+  private drivingState: DrivingState;
+  private orbitControls: any = null;
+  private notificationElement?: HTMLDivElement;
 
   constructor() {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    
+    // Initialize driving state
+    this.drivingState = {
+      isDriving: false,
+      currentPointIndex: 0,
+      currentPosition: { x: 0, y: 0, z: 0 },
+      currentDirection: { x: 0, y: 0, z: 1 },
+      speed: 0,
+      targetSpeed: 20
+    };
     
     this.init();
   }
@@ -52,17 +83,21 @@ class Kinopticon {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.setClearColor(0x87CEEB, 1); // Light sky blue
+    this.renderer.setClearColor(0x6B8CAE, 1); // Darker sky blue background
     document.body.appendChild(this.renderer.domElement);
 
     // Setup scene
     this.setupLighting();
+    this.createSkyDome();
     this.createFlatGround();
     this.setupCamera();
     this.setupControls();
 
     // Load roads - focus on proper road rendering
     this.loadHaldenRoads();
+    
+    // Setup driving controls UI
+    this.setupDrivingUI();
 
     // Start render loop
     this.animate();
@@ -84,6 +119,149 @@ class Kinopticon {
     directionalLight.shadow.camera.top = 100;
     directionalLight.shadow.camera.bottom = -100;
     this.scene.add(directionalLight);
+  }
+
+  private createSkyDome(): void {
+    console.log('☁️ Creating sky dome with clouds...');
+    
+    // Create sky sphere
+    const skyGeometry = new THREE.SphereGeometry(5000, 32, 32);
+    
+    // Create gradient sky with canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const context = canvas.getContext('2d')!;
+    
+    // Create darker sky gradient
+    const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#4A6B8A'); // Darker blue at top
+    gradient.addColorStop(0.3, '#6B8CAE'); // Medium blue
+    gradient.addColorStop(0.6, '#8FA7C4'); // Lighter blue
+    gradient.addColorStop(1, '#B8CDD9'); // Pale blue at horizon
+    
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Add more cloud patterns with higher opacity
+    context.globalAlpha = 0.5;
+    context.fillStyle = '#E8E8E8';
+    
+    // Draw more procedural clouds
+    for (let i = 0; i < 40; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height * 0.5 + canvas.height * 0.1; // Clouds in upper portion
+      const radiusX = Math.random() * 80 + 40;
+      const radiusY = Math.random() * 30 + 15;
+      
+      // Draw cloud puffs
+      context.save();
+      context.filter = 'blur(15px)';
+      context.beginPath();
+      context.ellipse(x, y, radiusX, radiusY, 0, 0, Math.PI * 2);
+      context.fill();
+      
+      // Add smaller puffs around main cloud
+      for (let j = 0; j < 3; j++) {
+        const offsetX = (Math.random() - 0.5) * radiusX;
+        const offsetY = (Math.random() - 0.5) * radiusY * 0.5;
+        const smallRadius = radiusX * 0.5;
+        
+        context.beginPath();
+        context.ellipse(x + offsetX, y + offsetY, smallRadius, smallRadius * 0.5, 0, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.restore();
+    }
+    
+    // Add wispy clouds
+    context.globalAlpha = 0.25;
+    context.filter = 'blur(20px)';
+    for (let i = 0; i < 20; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height * 0.4;
+      const width = Math.random() * 200 + 100;
+      const height = Math.random() * 20 + 10;
+      
+      context.fillRect(x, y, width, height);
+    }
+    
+    // Create texture from canvas
+    const skyTexture = new THREE.CanvasTexture(canvas);
+    skyTexture.needsUpdate = true;
+    
+    const skyMaterial = new THREE.MeshBasicMaterial({
+      map: skyTexture,
+      side: THREE.BackSide,
+      fog: false
+    });
+    
+    const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
+    this.scene.add(skyDome);
+    
+    // Add animated cloud layer
+    this.addAnimatedClouds();
+    
+    console.log('✅ Sky dome created');
+  }
+  
+  private addAnimatedClouds(): void {
+    // Create more floating cloud sprites at different heights
+    for (let i = 0; i < 25; i++) {
+      const cloudGeometry = new THREE.PlaneGeometry(
+        Math.random() * 300 + 200,
+        Math.random() * 100 + 50
+      );
+      
+      // Create cloud texture
+      const cloudCanvas = document.createElement('canvas');
+      cloudCanvas.width = 256;
+      cloudCanvas.height = 128;
+      const ctx = cloudCanvas.getContext('2d')!;
+      
+      // Draw fluffy cloud
+      ctx.fillStyle = 'white';
+      ctx.globalAlpha = 0.6;
+      ctx.filter = 'blur(10px)';
+      
+      // Multiple ellipses for cloud shape
+      for (let j = 0; j < 5; j++) {
+        const x = (j / 4) * cloudCanvas.width;
+        const y = cloudCanvas.height / 2 + (Math.random() - 0.5) * 20;
+        const radiusX = Math.random() * 40 + 30;
+        const radiusY = Math.random() * 20 + 15;
+        
+        ctx.beginPath();
+        ctx.ellipse(x, y, radiusX, radiusY, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      const cloudTexture = new THREE.CanvasTexture(cloudCanvas);
+      cloudTexture.needsUpdate = true;
+      
+      const cloudMaterial = new THREE.MeshBasicMaterial({
+        map: cloudTexture,
+        transparent: true,
+        opacity: 0.7,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      
+      const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+      
+      // Position clouds randomly in sky
+      cloud.position.set(
+        (Math.random() - 0.5) * 3000,
+        Math.random() * 200 + 300, // High in the sky
+        (Math.random() - 0.5) * 3000
+      );
+      
+      // Random rotation for variety
+      cloud.rotation.z = Math.random() * Math.PI;
+      
+      // Store cloud for potential animation
+      this.scene.add(cloud);
+    }
   }
 
   private createFlatGround(): void {
@@ -147,9 +325,12 @@ class Kinopticon {
     
     console.log(`✅ Created terrain with ${vertices.length/3} vertices and ${indices.length/3} triangles`);
     
-    // Make it very visible with a solid color
+    // Create grass texture
+    const grassTexture = this.createGrassTexture();
+    
+    // Create material with grass texture
     const material = new THREE.MeshLambertMaterial({ 
-      color: 0x4a7c59, // Forest green
+      map: grassTexture,
       side: THREE.DoubleSide,
       wireframe: false
     });
@@ -171,12 +352,12 @@ class Kinopticon {
     // Create a wireframe version of the same geometry
     const wireframeGeometry = baseGeometry.clone();
     
-    // Create subtle bright green wireframe material
+    // Create subtle green wireframe material - slightly different from grass
     const wireframeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x6fa86f, // Slightly brighter green
+      color: 0x5a7a4a, // Slightly darker green than grass base color
       wireframe: true,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.2,
       side: THREE.DoubleSide
     });
     
@@ -194,10 +375,10 @@ class Kinopticon {
   }
 
   private addGridLines(terrainSize: number): void {
-    const gridHelper = new THREE.GridHelper(terrainSize, 20, 0x7faf7f, 0x7faf7f);
+    const gridHelper = new THREE.GridHelper(terrainSize, 20, 0xdddddd, 0xdddddd);
     gridHelper.position.y = 0.2; // Just above terrain, below wireframe and roads
     gridHelper.material.transparent = true;
-    gridHelper.material.opacity = 0.15; // Even more subtle
+    gridHelper.material.opacity = 0.1; // Very subtle
     this.scene.add(gridHelper);
   }
 
@@ -289,6 +470,81 @@ class Kinopticon {
     // Simple pseudo-random noise function
     const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
     return (n - Math.floor(n)) * 2 - 1; // Range -1 to 1
+  }
+
+  private createGrassTexture(): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const context = canvas.getContext('2d')!;
+    
+    // Base grass color - darker green
+    context.fillStyle = '#4a6741';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Add grass blade texture
+    for (let i = 0; i < 3000; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const height = Math.random() * 8 + 2;
+      const width = Math.random() * 2 + 0.5;
+      
+      // Vary grass colors
+      const greenVariation = Math.floor(Math.random() * 40);
+      const r = 60 + Math.floor(Math.random() * 20);
+      const g = 100 + greenVariation;
+      const b = 50 + Math.floor(Math.random() * 15);
+      
+      context.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+      context.lineWidth = width;
+      context.lineCap = 'round';
+      
+      // Draw grass blade
+      context.beginPath();
+      context.moveTo(x, y);
+      const curve = (Math.random() - 0.5) * 4;
+      context.quadraticCurveTo(x + curve, y - height/2, x + curve*2, y - height);
+      context.stroke();
+    }
+    
+    // Add some texture patches
+    context.globalAlpha = 0.3;
+    for (let i = 0; i < 50; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const radius = Math.random() * 30 + 10;
+      
+      // Darker patches
+      const isDark = Math.random() > 0.5;
+      if (isDark) {
+        context.fillStyle = '#3a5531';
+      } else {
+        context.fillStyle = '#5a7551';
+      }
+      
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
+    }
+    
+    // Add subtle noise
+    context.globalAlpha = 0.1;
+    for (let i = 0; i < 500; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const size = Math.random() * 3 + 1;
+      
+      context.fillStyle = Math.random() > 0.5 ? '#2a4521' : '#6a8561';
+      context.fillRect(x, y, size, size);
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(50, 50); // Tile the texture across the terrain
+    texture.needsUpdate = true;
+    
+    return texture;
   }
 
   private smoothRoadPath(points: Vec3[]): Vec3[] {
@@ -390,6 +646,91 @@ class Kinopticon {
   private setupCamera(): void {
     this.camera.position.set(400, 300, 400);
     this.camera.lookAt(0, 0, 0);
+  }
+
+  private setupDrivingUI(): void {
+    // Create control panel
+    const controlPanel = document.createElement('div');
+    controlPanel.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      font-family: Arial, sans-serif;
+    `;
+    
+    // Drive button
+    const driveButton = document.createElement('button');
+    driveButton.textContent = 'Drive';
+    driveButton.style.cssText = `
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 30px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      width: 100%;
+      font-weight: bold;
+    `;
+    
+    driveButton.addEventListener('click', () => this.toggleDriving());
+    
+    // Speed control
+    const speedContainer = document.createElement('div');
+    speedContainer.style.cssText = 'margin-top: 10px;';
+    
+    const speedLabel = document.createElement('label');
+    speedLabel.textContent = 'Speed: ';
+    speedLabel.style.cssText = 'display: block; margin-bottom: 5px; font-size: 14px;';
+    
+    const speedSlider = document.createElement('input');
+    speedSlider.type = 'range';
+    speedSlider.min = '5';
+    speedSlider.max = '80';
+    speedSlider.value = '20';
+    speedSlider.style.cssText = 'width: 100%; margin-bottom: 5px;';
+    
+    const speedValue = document.createElement('span');
+    speedValue.textContent = '20 km/h';
+    speedValue.style.cssText = 'display: block; text-align: center; font-size: 12px; color: #666;';
+    
+    speedSlider.addEventListener('input', (e) => {
+      const speed = parseInt((e.target as HTMLInputElement).value);
+      this.drivingState.targetSpeed = speed;
+      speedValue.textContent = `${speed} km/h`;
+    });
+    
+    speedContainer.appendChild(speedLabel);
+    speedContainer.appendChild(speedSlider);
+    speedContainer.appendChild(speedValue);
+    
+    controlPanel.appendChild(driveButton);
+    controlPanel.appendChild(speedContainer);
+    document.body.appendChild(controlPanel);
+    
+    // Create notification area
+    this.notificationElement = document.createElement('div');
+    this.notificationElement.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 25px;
+      font-size: 16px;
+      display: none;
+      z-index: 1001;
+      font-family: Arial, sans-serif;
+    `;
+    document.body.appendChild(this.notificationElement);
   }
 
   private setupControls(): void {
@@ -572,12 +913,14 @@ class Kinopticon {
       const smoothedPoints = this.smoothRoadPath(rawPoints);
       points.push(...smoothedPoints);
       
-      // Debug: Log first few road points
-      if (points.length < 6 && smoothedPoints.length > 0) {
-        console.log(`🛣️ Smoothed road: ${rawPoints.length} → ${smoothedPoints.length} points`);
-      }
-      
       if (points.length < 2) continue;
+      
+      // Store road segment for driving
+      this.roadSegments.push({
+        points: smoothedPoints,
+        name: way.tags.name || `Road ${way.id}`,
+        wayId: way.id
+      });
       
       // Create individual road lines
       const roadLines = this.createRoadLines(points, way.tags, centerMaterial, sideMaterial);
@@ -654,7 +997,7 @@ class Kinopticon {
     const centerGeometry = new THREE.BufferGeometry();
     const centerVertices: number[] = [];
     for (const point of points) {
-      centerVertices.push(point.x, point.y + 2.5, point.z); // Above road surface
+      centerVertices.push(point.x, point.y, point.z); // Same level as road surface
     }
     centerGeometry.setAttribute('position', new THREE.Float32BufferAttribute(centerVertices, 3));
     const centerLine = new THREE.Line(centerGeometry, centerMaterial);
@@ -664,7 +1007,7 @@ class Kinopticon {
     const leftGeometry = new THREE.BufferGeometry();
     const leftVertices: number[] = [];
     for (const point of leftPoints) {
-      leftVertices.push(point.x, point.y + 0.5, point.z); // Above road surface
+      leftVertices.push(point.x, point.y, point.z); // Same level as road surface
     }
     leftGeometry.setAttribute('position', new THREE.Float32BufferAttribute(leftVertices, 3));
     const leftLine = new THREE.Line(leftGeometry, sideMaterial);
@@ -674,7 +1017,7 @@ class Kinopticon {
     const rightGeometry = new THREE.BufferGeometry();
     const rightVertices: number[] = [];
     for (const point of rightPoints) {
-      rightVertices.push(point.x, point.y + 0.5, point.z); // Above road surface
+      rightVertices.push(point.x, point.y, point.z); // Same level as road surface
     }
     rightGeometry.setAttribute('position', new THREE.Float32BufferAttribute(rightVertices, 3));
     const rightLine = new THREE.Line(rightGeometry, sideMaterial);
@@ -892,31 +1235,370 @@ class Kinopticon {
   private createNameMarker(x: number, z: number, terrainHeight: number, name: string): THREE.Group {
     const group = new THREE.Group();
     
-    // Create a small cylinder as base
-    const baseGeometry = new THREE.CylinderGeometry(0.5, 0.5, 1);
-    const baseMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
-    const base = new THREE.Mesh(baseGeometry, baseMaterial);
-    base.position.set(x, terrainHeight + 1, z);
-    group.add(base);
-    
-    // Note: In a real implementation, you'd add 3D text here
-    // For now, we'll just use a distinct marker
-    const topGeometry = new THREE.SphereGeometry(0.3, 6, 4);
-    const topMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-    const top = new THREE.Mesh(topGeometry, topMaterial);
-    top.position.set(x, terrainHeight + 2, z);
-    group.add(top);
+    // Create text sprite that always faces camera
+    const sprite = this.createTextSprite(name, x, terrainHeight + 15, z);
+    this.roadLabels.push(sprite);
+    group.add(sprite);
     
     return group;
+  }
+
+  private createTextSprite(text: string, x: number, y: number, z: number): THREE.Sprite {
+    // Create canvas for text
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d')!;
+    
+    // Set canvas size
+    canvas.width = 512;
+    canvas.height = 128;
+    
+    // Configure background with rounded corners - no border
+    context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    const padding = 20;
+    const radius = 15;
+    
+    // Draw rounded rectangle background
+    context.beginPath();
+    context.moveTo(radius, 0);
+    context.lineTo(canvas.width - radius, 0);
+    context.quadraticCurveTo(canvas.width, 0, canvas.width, radius);
+    context.lineTo(canvas.width, canvas.height - radius);
+    context.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
+    context.lineTo(radius, canvas.height);
+    context.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+    context.lineTo(0, radius);
+    context.quadraticCurveTo(0, 0, radius, 0);
+    context.closePath();
+    context.fill();
+    
+    // Configure text style
+    context.font = 'bold 36px Arial';
+    context.fillStyle = '#1a1a1a';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    
+    // Draw text
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+    
+    // Create texture from canvas
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    
+    // Create sprite material
+    const spriteMaterial = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.9
+    });
+    
+    // Create sprite
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.position.set(x, y, z);
+    
+    // Scale sprite (adjust as needed)
+    const scale = 25;
+    sprite.scale.set(scale * (canvas.width / canvas.height), scale, 1);
+    
+    return sprite;
   }
 
 
 
 
 
+  private toggleDriving(): void {
+    if (this.drivingState.isDriving) {
+      this.stopDriving();
+    } else {
+      this.startDriving();
+    }
+  }
+
+  private startDriving(): void {
+    if (this.roadSegments.length === 0) {
+      console.warn('No roads available for driving');
+      return;
+    }
+    
+    console.log('🚗 Starting driving mode, available segments:', this.roadSegments.length);
+    
+    // Find nearest road segment
+    const camPos = this.camera.position;
+    let nearestSegment: RoadSegment | null = null;
+    let nearestDistance = Infinity;
+    let nearestPointIndex = 0;
+    
+    for (const segment of this.roadSegments) {
+      for (let i = 0; i < segment.points.length - 1; i++) { // Skip last point to have look-ahead
+        const point = segment.points[i];
+        const dist = Math.sqrt(
+          Math.pow(point.x - camPos.x, 2) +
+          Math.pow(point.z - camPos.z, 2)
+        );
+        if (dist < nearestDistance) {
+          nearestDistance = dist;
+          nearestSegment = segment;
+          nearestPointIndex = i;
+        }
+      }
+    }
+    
+    if (!nearestSegment) {
+      console.warn('Could not find nearest segment');
+      return;
+    }
+    
+    console.log(`📍 Found nearest road: ${nearestSegment.name} at index ${nearestPointIndex}, distance: ${nearestDistance.toFixed(2)}`);
+    
+    // Set driving state
+    this.drivingState.isDriving = true;
+    this.drivingState.currentSegment = nearestSegment;
+    this.drivingState.currentPointIndex = nearestPointIndex;
+    const startPoint = nearestSegment.points[nearestPointIndex];
+    // Road is at terrain + 1, so driver eye should be at terrain + 3 (2m above road)
+    this.drivingState.currentPosition = { 
+      x: startPoint.x, 
+      y: this.getTerrainHeight(startPoint.x, startPoint.z) + 3,
+      z: startPoint.z 
+    };
+    this.drivingState.speed = 0;
+    
+    // Immediately position camera at road
+    this.camera.position.set(
+      this.drivingState.currentPosition.x,
+      this.drivingState.currentPosition.y,
+      this.drivingState.currentPosition.z
+    );
+    
+    // Look at next point
+    if (nearestPointIndex < nearestSegment.points.length - 1) {
+      const lookPoint = nearestSegment.points[nearestPointIndex + 1];
+      this.camera.lookAt(
+        lookPoint.x,
+        this.getTerrainHeight(lookPoint.x, lookPoint.z) + 2.5, // Look at road level ahead
+        lookPoint.z
+      );
+    }
+    
+    console.log(`🎥 Camera positioned at (${this.drivingState.currentPosition.x.toFixed(1)}, ${this.drivingState.currentPosition.y.toFixed(1)}, ${this.drivingState.currentPosition.z.toFixed(1)})`);
+    
+    // Update button
+    const button = document.querySelector('button') as HTMLButtonElement;
+    if (button) {
+      button.textContent = 'Stop';
+      button.style.background = '#f44336';
+    }
+    
+    this.showNotification(`Starting drive on ${nearestSegment.name}`);
+  }
+
+  private stopDriving(): void {
+    this.drivingState.isDriving = false;
+    this.drivingState.speed = 0;
+    
+    // Update button
+    const button = document.querySelector('button') as HTMLButtonElement;
+    if (button) {
+      button.textContent = 'Drive';
+      button.style.background = '#4CAF50';
+    }
+    
+    this.hideNotification();
+  }
+
+  private showNotification(message: string): void {
+    if (this.notificationElement) {
+      this.notificationElement.textContent = message;
+      this.notificationElement.style.display = 'block';
+      
+      // Auto-hide after 3 seconds
+      setTimeout(() => this.hideNotification(), 3000);
+    }
+  }
+
+  private hideNotification(): void {
+    if (this.notificationElement) {
+      this.notificationElement.style.display = 'none';
+    }
+  }
+
+  private updateDriving(deltaTime: number): void {
+    if (!this.drivingState.isDriving || !this.drivingState.currentSegment) return;
+    
+    // Skip invalid delta times
+    if (deltaTime <= 0 || deltaTime > 1) return;
+    
+    // Accelerate/decelerate towards target speed
+    const acceleration = 20; // km/h per second
+    if (this.drivingState.speed < this.drivingState.targetSpeed) {
+      this.drivingState.speed = Math.min(
+        this.drivingState.targetSpeed,
+        this.drivingState.speed + acceleration * deltaTime
+      );
+    } else {
+      this.drivingState.speed = Math.max(
+        this.drivingState.targetSpeed,
+        this.drivingState.speed - acceleration * deltaTime
+      );
+    }
+    
+    // Convert speed to world units per second (assuming 1 world unit = 1 meter)
+    const speedMPS = this.drivingState.speed / 3.6; // km/h to m/s
+    const distanceToMove = speedMPS * deltaTime;
+    
+    const segment = this.drivingState.currentSegment;
+    const points = segment.points;
+    
+    // Move along current segment
+    while (this.drivingState.currentPointIndex < points.length - 1 && distanceToMove > 0) {
+      const currentPoint = points[this.drivingState.currentPointIndex];
+      const nextPoint = points[this.drivingState.currentPointIndex + 1];
+      
+      // Calculate remaining distance in current segment
+      const dx = nextPoint.x - this.drivingState.currentPosition.x;
+      const dz = nextPoint.z - this.drivingState.currentPosition.z;
+      const segmentRemainingLength = Math.sqrt(dx * dx + dz * dz);
+      
+      if (segmentRemainingLength < 0.01) {
+        // Very close to next point, just move to it
+        this.drivingState.currentPointIndex++;
+        if (this.drivingState.currentPointIndex < points.length) {
+          const newPoint = points[this.drivingState.currentPointIndex];
+          this.drivingState.currentPosition.x = newPoint.x;
+          this.drivingState.currentPosition.z = newPoint.z;
+        }
+        continue;
+      }
+      
+      // Move along the segment
+      const moveDistance = Math.min(distanceToMove, segmentRemainingLength);
+      const moveRatio = moveDistance / segmentRemainingLength;
+      
+      // Update position
+      this.drivingState.currentPosition.x += dx * moveRatio;
+      this.drivingState.currentPosition.z += dz * moveRatio;
+      // Road surface is at terrain + 2, driver eye at terrain + 3.5 (1.5m above road)
+      this.drivingState.currentPosition.y = this.getTerrainHeight(
+        this.drivingState.currentPosition.x,
+        this.drivingState.currentPosition.z
+      ) + 3.5; // Driver eye height above road
+      
+      // Update camera position
+      this.camera.position.set(
+        this.drivingState.currentPosition.x,
+        this.drivingState.currentPosition.y,
+        this.drivingState.currentPosition.z
+      );
+      
+      // Look ahead for smooth turning
+      let lookAheadIndex = Math.min(this.drivingState.currentPointIndex + 3, points.length - 1);
+      const lookAtPoint = points[lookAheadIndex];
+      const lookY = this.getTerrainHeight(lookAtPoint.x, lookAtPoint.z) + 3; // Look at road level ahead
+      this.camera.lookAt(lookAtPoint.x, lookY, lookAtPoint.z);
+      
+      // Check if we reached the next point
+      if (moveDistance >= segmentRemainingLength - 0.01) {
+        this.drivingState.currentPointIndex++;
+      }
+      
+      break; // Only process one segment per frame for smooth movement
+    }
+    
+    // Check if reached end of segment
+    if (this.drivingState.currentPointIndex >= points.length - 1) {
+      this.handleSegmentEnd();
+    }
+  }
+
+  private handleSegmentEnd(): void {
+    // Check for intersections (other segments that share endpoints)
+    const currentSegment = this.drivingState.currentSegment!;
+    const lastPoint = currentSegment.points[currentSegment.points.length - 1];
+    
+    const connectedSegments: RoadSegment[] = [];
+    for (const segment of this.roadSegments) {
+      if (segment === currentSegment) continue;
+      
+      // Check if this segment connects at either end
+      const firstPoint = segment.points[0];
+      const lastSegPoint = segment.points[segment.points.length - 1];
+      
+      const distToFirst = Math.sqrt(
+        Math.pow(firstPoint.x - lastPoint.x, 2) +
+        Math.pow(firstPoint.z - lastPoint.z, 2)
+      );
+      
+      const distToLast = Math.sqrt(
+        Math.pow(lastSegPoint.x - lastPoint.x, 2) +
+        Math.pow(lastSegPoint.z - lastPoint.z, 2)
+      );
+      
+      if (distToFirst < 5 || distToLast < 5) {
+        connectedSegments.push(segment);
+      }
+    }
+    
+    if (connectedSegments.length > 0) {
+      // Choose random connected segment
+      const nextSegment = connectedSegments[Math.floor(Math.random() * connectedSegments.length)];
+      
+      // Determine if we need to reverse the segment
+      const firstPoint = nextSegment.points[0];
+      const distToFirst = Math.sqrt(
+        Math.pow(firstPoint.x - lastPoint.x, 2) +
+        Math.pow(firstPoint.z - lastPoint.z, 2)
+      );
+      
+      if (distToFirst < 5) {
+        // Start from beginning
+        this.drivingState.currentSegment = nextSegment;
+        this.drivingState.currentPointIndex = 0;
+        this.showNotification(`Turning onto ${nextSegment.name}`);
+      } else {
+        // Start from end (reverse)
+        this.drivingState.currentSegment = {
+          ...nextSegment,
+          points: [...nextSegment.points].reverse()
+        };
+        this.drivingState.currentPointIndex = 0;
+        this.showNotification(`Turning onto ${nextSegment.name}`);
+      }
+    } else {
+      // Dead end - turn around
+      this.drivingState.currentSegment = {
+        ...currentSegment,
+        points: [...currentSegment.points].reverse()
+      };
+      this.drivingState.currentPointIndex = 0;
+      this.showNotification(`Turning around on ${currentSegment.name}`);
+    }
+  }
+
+  private lastAnimationTime = 0;
+  
   private animate(): void {
-    requestAnimationFrame(() => this.animate());
-    this.renderer.render(this.scene, this.camera);
+    requestAnimationFrame((time) => {
+      // Initialize time on first frame
+      if (this.lastAnimationTime === 0) {
+        this.lastAnimationTime = time;
+      }
+      
+      const deltaTime = Math.min((time - this.lastAnimationTime) / 1000, 0.1); // Cap at 100ms
+      this.lastAnimationTime = time;
+      
+      // Update driving if active
+      if (this.drivingState.isDriving && deltaTime > 0) {
+        this.updateDriving(deltaTime);
+      }
+      
+      // Update road label sprites to face camera
+      for (const sprite of this.roadLabels) {
+        sprite.lookAt(this.camera.position);
+      }
+      
+      this.renderer.render(this.scene, this.camera);
+      this.animate();
+    });
   }
 
   public start(): void {
